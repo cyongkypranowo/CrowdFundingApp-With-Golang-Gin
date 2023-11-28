@@ -1,0 +1,58 @@
+# users
+* id : bigint
+* name : varchar 
+* occupation : varchar
+* email : varchar
+* password_hash : varchar
+* avatar_file_name : varchar
+* role : varchar
+* token : varchar
+* created_at : datetime
+* updated_at : datetime
+* deleted_at : datetime
+
+
+# campaigns
+* id : bigint
+* user_id : bigint
+* name : varchar  
+* short_description : varchar
+* description : text
+* goal_amount : int
+* current_amount : int
+* perks : json
+* backer_count : int
+* slug : varchar
+* created_by : bigint
+* created_at : datetime
+* updated_at : datetime
+* updated_by : bigint
+* deleted_at : datetime
+* deleted_by : bigint
+
+# campaign_images
+* id : bigint
+* campaign_id : bigint
+* file_name : varchar
+* is_primary : boolean
+* display_order : tinyint
+* created_by : bigint
+* created_at : datetime
+* updated_at : datetime
+* updated_by : bigint
+* deleted_at : datetime
+* deleted_by : bigint
+
+# transactions
+* id : bigint
+* campaign_id : bigint
+* user_id : bigint
+* amount : int
+* status : varchar
+* code : varchar
+* created_by : bigint
+* created_at : datetime
+* updated_at : datetime
+* updated_by : bigint
+* deleted_at : datetime
+* deleted_by : bigint
