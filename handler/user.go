@@ -3,7 +3,9 @@ package handler
 import (
 	"crowdfunding/helper"
 	"crowdfunding/users"
+	"fmt"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 )
@@ -102,7 +104,7 @@ func (h *userHandler) CheckEmailAvailability(c *gin.Context) {
 	}
 
 	data := gin.H{
-		"is_available": isEmailAvailable,
+		"isAvailable": isEmailAvailable,
 	}
 
 	metaMessage := "Email is available"
@@ -114,4 +116,61 @@ func (h *userHandler) CheckEmailAvailability(c *gin.Context) {
 	response := helper.APIResponse(metaMessage, http.StatusOK, "success", data)
 	c.JSON(http.StatusOK, response)
 	return
+}
+
+func (h *userHandler) UploadAvatar(c *gin.Context) {
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		data := gin.H{
+			"isUploaded": false,
+		}
+		response := helper.APIResponse("Avatar Upload Failed", http.StatusBadRequest, "error", data)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	// Create a destination file to save the uploaded avatar
+	uniqueID := helper.GenerateUniqueID()
+	//get file extension
+	fileExtension := filepath.Ext(file.Filename)
+	//handle if fileextension is not jpg/jpeg/png will return error
+	if fileExtension != ".jpg" && fileExtension != ".jpeg" && fileExtension != ".png" {
+		data := gin.H{
+			"isUploaded": false,
+		}
+		response := helper.APIResponse("Invalid File Extension", http.StatusBadRequest, "error", data)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	avatarPath := fmt.Sprintf("uploads/avatars/%s_%s.%s", uniqueID, "avatar", fileExtension)
+	dst := filepath.Join("./", avatarPath)
+
+	// Save the uploaded file to the destination
+	if err := c.SaveUploadedFile(file, dst); err != nil {
+		data := gin.H{
+			"isUploaded": false,
+		}
+		response := helper.APIResponse("Failed to Save Avatar", http.StatusInternalServerError, "error", data)
+		c.JSON(http.StatusInternalServerError, response)
+		return
+	}
+
+	userID := 1
+	_, err = h.userService.SaveAvatar(int64(userID), avatarPath)
+	if err != nil {
+		data := gin.H{
+			"isUploaded": false,
+		}
+		response := helper.APIResponse("Failed to Save Avatar", http.StatusInternalServerError, "error", data)
+		c.JSON(http.StatusInternalServerError, response)
+		return
+	}
+
+	data := gin.H{
+		"isUploaded": true,
+	}
+	response := helper.APIResponse("Avatar successfuly uploaded", http.StatusOK, "success", data)
+	c.JSON(http.StatusOK, response)
+
 }
