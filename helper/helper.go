@@ -1,7 +1,20 @@
 package helper
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"time"
+
 	"github.com/go-playground/validator/v10"
+)
+
+const (
+	StatusUnprocessableEntity = 422
+	StatusBadRequest          = 400
+	StatusInternalServerError = 500
+	StatusCreated             = 201
+	StatusOK                  = 200
 )
 
 type Response struct {
@@ -30,8 +43,23 @@ func APIResponse(message string, code int, status string, data interface{}) Resp
 
 func FormatValidationError(err error) []string {
 	var errors []string
-	for _, v := range err.(validator.ValidationErrors) {
-		errors = append(errors, v.Error())
+
+	if validationErr, ok := err.(validator.ValidationErrors); ok {
+		for _, v := range validationErr {
+			errors = append(errors, v.Error())
+		}
+	} else if syntaxErr, ok := err.(*json.SyntaxError); ok {
+		errors = append(errors, syntaxErr.Error())
+	} else {
+		log.Printf("Unexpected error: %v", err)
+		errors = append(errors, "Internal server error")
 	}
+
 	return errors
+}
+
+func GenerateUniqueID() string {
+	// Use the current timestamp to create a unique ID
+	timestamp := time.Now().UnixNano()
+	return fmt.Sprintf("%d", timestamp)
 }
