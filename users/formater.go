@@ -4,7 +4,7 @@ type UserFormatter struct {
 	ID         int64  `json:"id"`
 	Name       string `json:"name"`
 	Occupation string `json:"occupation"`
-	Email      string `json:"Email"`
+	Email      string `json:"email"`
 	Token      string `json:"token"`
 }
 

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crowdfunding/auth"
 	"crowdfunding/helper"
 	"crowdfunding/users"
 	"fmt"
@@ -12,10 +13,11 @@ import (
 
 type userHandler struct {
 	userService users.Service
+	authService auth.Service
 }
 
-func NewUserHandler(userService users.Service) *userHandler {
-	return &userHandler{userService}
+func NewUserHandler(userService users.Service, authService auth.Service) *userHandler {
+	return &userHandler{userService, authService}
 }
 
 func (h *userHandler) RegisterUser(c *gin.Context) {
@@ -33,6 +35,23 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 		return
 	}
 
+	// Check if the email is already registered
+	isEmailAvailable, err := h.userService.IsEmailAvailable(users.CheckEmailInput{Email: input.Email})
+	if err != nil {
+		errorMessage := gin.H{"error": "Server Error"}
+		response := helper.APIResponse("Email Checking Failed", http.StatusUnprocessableEntity, "error", errorMessage)
+		c.JSON(http.StatusUnprocessableEntity, response)
+		return
+	}
+
+	if !isEmailAvailable {
+		// Email is already registered
+		errorMessage := gin.H{"error": "Email is already registered"}
+		response := helper.APIResponse("Register account failed", http.StatusConflict, "error", errorMessage)
+		c.JSON(http.StatusConflict, response)
+		return
+	}
+
 	user, err := h.userService.RegisterUser(input)
 
 	if err != nil {
@@ -41,7 +60,14 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	formatter := users.FormatUser(user, "tokentokentoken")
+	token, err := h.authService.GenerateToken(user.ID)
+	if err != nil {
+		response := helper.APIResponse("Register account failed", http.StatusBadRequest, "error", nil)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	formatter := users.FormatUser(user, token)
 
 	response := helper.APIResponse("Account has been registered", http.StatusCreated, "success", formatter)
 
@@ -72,7 +98,15 @@ func (h *userHandler) Login(c *gin.Context) {
 		return
 	}
 
-	formatter := users.FormatUser(loggedInUser, "tokentokentoken")
+	token, err := h.authService.GenerateToken(loggedInUser.ID)
+	if err != nil {
+		errorMessage := gin.H{"error": err.Error()}
+		response := helper.APIResponse("Login failed", http.StatusUnprocessableEntity, "error", errorMessage)
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	formatter := users.FormatUser(loggedInUser, token)
 
 	response := helper.APIResponse("Successfully logged in.", http.StatusOK, "success", formatter)
 
