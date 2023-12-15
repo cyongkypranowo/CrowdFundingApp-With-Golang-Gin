@@ -1,6 +1,10 @@
 package users
 
-import "gorm.io/gorm"
+import (
+	"errors"
+
+	"gorm.io/gorm"
+)
 
 type Repository interface {
 	Save(user User) (User, error)
@@ -47,6 +51,9 @@ func (r *repository) Update(user User) (User, error) {
 	err := r.db.Save(&user).Error
 	if err != nil {
 		return user, err
+	}
+	if user.ID == 0 {
+		return user, errors.New("user not found")
 	}
 	return user, nil
 }
