@@ -12,7 +12,6 @@ type repository struct {
 }
 
 func NewRepository(db *gorm.DB) *repository {
-	db = db.Where("deleted_at IS NULL")
 	return &repository{db}
 }
 
