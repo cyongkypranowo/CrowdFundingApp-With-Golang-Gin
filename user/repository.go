@@ -1,4 +1,4 @@
-package users
+package user
 
 import (
 	"errors"
@@ -18,6 +18,7 @@ type repository struct {
 }
 
 func NewRepository(db *gorm.DB) *repository {
+	db = db.Where("deleted_at IS NULL")
 	return &repository{db}
 }
 
@@ -40,7 +41,7 @@ func (r *repository) FindByEmail(email string) (User, error) {
 
 func (r *repository) FindByID(id uint64) (User, error) {
 	var user User
-	err := r.db.Where("id = ?", id).Find(&user).Error
+	err := r.db.Where("id = ? AND deleted_at IS NULL", id).Find(&user).Error
 	if err != nil {
 		return user, err
 	}

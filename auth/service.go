@@ -8,7 +8,7 @@ import (
 )
 
 type Service interface {
-	GenerateToken(userID int64) (string, error)
+	GenerateToken(userID uint64) (string, error)
 	ValidateToken(token string) (*jwt.Token, error)
 }
 
@@ -30,7 +30,7 @@ func NewService() *jwtService {
 // Returns:
 // - tokenString: the generated JWT token as a string.
 // - err: any error encountered during token generation.
-func (s *jwtService) GenerateToken(userID int64) (string, error) {
+func (s *jwtService) GenerateToken(userID uint64) (string, error) {
 	claim := jwt.MapClaims{}
 	claim["user_id"] = userID
 

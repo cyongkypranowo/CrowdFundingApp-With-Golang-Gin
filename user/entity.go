@@ -1,4 +1,4 @@
-package users
+package user
 
 import (
 	"time"
@@ -16,5 +16,5 @@ type User struct {
 	Role           string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
-	DeletedAt      gorm.DeletedAt
+	DeletedAt      gorm.DeletedAt `gorm:"index"`
 }

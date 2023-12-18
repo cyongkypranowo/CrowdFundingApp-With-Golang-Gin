@@ -149,7 +149,6 @@ func (h *userHandler) CheckEmailAvailability(c *gin.Context) {
 
 	response := helper.APIResponse(metaMessage, http.StatusOK, "success", data)
 	c.JSON(http.StatusOK, response)
-	return
 }
 
 func (h *userHandler) UploadAvatar(c *gin.Context) {
@@ -177,7 +176,7 @@ func (h *userHandler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	avatarPath := fmt.Sprintf("uploads/avatars/%s_%s.%s", uniqueID, "avatar", fileExtension)
+	avatarPath := fmt.Sprintf("uploads/avatars/%s_%s%s", uniqueID, "avatar", fileExtension)
 	dst := filepath.Join("./", avatarPath)
 
 	// Save the uploaded file to the destination
@@ -190,8 +189,10 @@ func (h *userHandler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	userID := 1
-	_, err = h.userService.SaveAvatar(int64(userID), avatarPath)
+	currentUser := c.MustGet("currentUser").(users.User)
+	userID := currentUser.ID
+
+	_, err = h.userService.SaveAvatar(uint64(userID), avatarPath)
 	if err != nil {
 		data := gin.H{
 			"isUploaded": false,
