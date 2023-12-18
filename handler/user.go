@@ -192,7 +192,7 @@ func (h *userHandler) UploadAvatar(c *gin.Context) {
 	currentUser := c.MustGet("currentUser").(users.User)
 	userID := currentUser.ID
 
-	_, err = h.userService.SaveAvatar(int64(userID), avatarPath)
+	_, err = h.userService.SaveAvatar(uint64(userID), avatarPath)
 	if err != nil {
 		data := gin.H{
 			"isUploaded": false,

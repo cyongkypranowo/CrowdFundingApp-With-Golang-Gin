@@ -2,9 +2,11 @@ package main
 
 import (
 	"crowdfunding/auth"
+	"crowdfunding/campaign"
 	"crowdfunding/handler"
 	"crowdfunding/helper"
 	"crowdfunding/users"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -32,9 +34,20 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
+	// Repository Init
 	userRepository := users.NewRepository(db)
+	campaignRepository := campaign.NewRepository(db)
+
 	userService := users.NewService(userRepository)
 	authService := auth.NewService()
+
+	campaigns, err := campaignRepository.FindByUserID(1)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	for _, campaign := range campaigns {
+		fmt.Println(campaign.CampaignImages[0].FileName)
+	}
 
 	userHandler := handler.NewUserHandler(userService, authService)
 
@@ -71,7 +84,7 @@ func authMiddleware(authService auth.Service, userService users.Service) gin.Han
 			return
 		}
 
-		userID := int64(claim["user_id"].(float64))
+		userID := uint64(claim["user_id"].(float64))
 		user, err := userService.GetUserByID(userID)
 		if err != nil {
 			response := helper.APIResponse("Unauthorized", http.StatusUnauthorized, "error", nil)
