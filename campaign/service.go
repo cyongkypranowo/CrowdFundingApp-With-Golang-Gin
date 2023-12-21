@@ -2,6 +2,7 @@ package campaign
 
 import (
 	"crowdfunding/helper"
+	"errors"
 
 	"github.com/gosimple/slug"
 )
@@ -10,6 +11,8 @@ type Service interface {
 	GetCampaigns(userID uint64) ([]Campaign, error)
 	GetCampaignByID(input GetCampaignDetailInput) (Campaign, error)
 	CreateCampaign(input CreateCampaignInput) (Campaign, error)
+	UpdateCampaign(inputID GetCampaignDetailInput, inputData CreateCampaignInput) (Campaign, error)
+	SaveCampaignImage(input CreateCampaignImageInput, fileLocation string) (CampaignImage, error)
 }
 
 type service struct {
@@ -59,4 +62,56 @@ func (s *service) CreateCampaign(input CreateCampaignInput) (Campaign, error) {
 		return campaign, err
 	}
 	return campaign, nil
+}
+
+func (s *service) UpdateCampaign(inputID GetCampaignDetailInput, inputData CreateCampaignInput) (Campaign, error) {
+	campaign, err := s.repository.FindByID(inputID.ID)
+	if err != nil {
+		return campaign, err
+	}
+	// Check apakah user yang melakukan update adalah pemilik campaign
+	if campaign.UserID != inputData.User.ID {
+		return campaign, err
+	}
+	campaign.Name = inputData.Name
+	campaign.ShortDescription = inputData.ShortDescription
+	campaign.Description = inputData.Description
+	campaign.Perks = inputData.Perks
+	campaign.GoalAmount = inputData.GoalAmount
+	campaign.UserID = inputData.User.ID
+	// campaign.Slug = slug.Make(inputData.Name) + "-" + helper.GenerateUniqueID(4)
+	updatedCampaign, err := s.repository.Update(campaign)
+	if err != nil {
+		return updatedCampaign, err
+	}
+	return updatedCampaign, nil
+}
+
+func (s *service) SaveCampaignImage(input CreateCampaignImageInput, fileLocation string) (CampaignImage, error) {
+	campaign, err := s.repository.FindByID(input.CampaignID)
+	if err != nil {
+		return CampaignImage{}, err
+	}
+	if campaign.UserID != input.User.ID {
+		return CampaignImage{}, errors.New("not an owner of the campaign")
+	}
+	isPrimary := 0
+	if input.IsPrimary {
+		isPrimary = 1
+		_, err := s.repository.MarkAllImagesAsNonPrimary(input.CampaignID)
+		if err != nil {
+			return CampaignImage{}, err
+		}
+	}
+
+	campaignImage := CampaignImage{
+		CampaignID: input.CampaignID,
+		FileName:   fileLocation,
+		IsPrimary:  isPrimary,
+	}
+	newCampaignImage, err := s.repository.CreateImage(campaignImage)
+	if err != nil {
+		return campaignImage, err
+	}
+	return newCampaignImage, nil
 }
