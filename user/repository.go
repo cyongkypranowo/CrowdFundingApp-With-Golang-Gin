@@ -41,7 +41,7 @@ func (r *repository) FindByEmail(email string) (User, error) {
 
 func (r *repository) FindByID(id uint64) (User, error) {
 	var user User
-	err := r.db.Where("id = ? AND deleted_at IS NULL", id).Find(&user).Error
+	err := r.db.Where("id = ?", id).Find(&user).Error
 	if err != nil {
 		return user, err
 	}

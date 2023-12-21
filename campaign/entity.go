@@ -1,6 +1,7 @@
 package campaign
 
 import (
+	"crowdfunding/user"
 	"time"
 
 	"gorm.io/gorm"
@@ -8,7 +9,6 @@ import (
 
 type Campaign struct {
 	ID               uint64
-	UserID           uint64
 	Name             string
 	ShortDescription string
 	Description      string
@@ -24,6 +24,8 @@ type Campaign struct {
 	UpdatedAt        time.Time
 	DeletedAt        gorm.DeletedAt `gorm:"index"`
 	CampaignImages   []CampaignImage
+	UserID           uint64 `gorm:"foreignkey:UserID"`
+	User             user.User
 }
 
 type CampaignImage struct {

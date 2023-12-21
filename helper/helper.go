@@ -2,7 +2,6 @@ package helper
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
@@ -58,8 +57,11 @@ func FormatValidationError(err error) []string {
 	return errors
 }
 
-func GenerateUniqueID() string {
-	// Use the current timestamp to create a unique ID
-	timestamp := time.Now().UnixNano()
-	return fmt.Sprintf("%d", timestamp)
+func GenerateUniqueID(length int) string {
+	if length == 0 {
+		length = 4
+	}
+	uniqCode := time.Now().Format("20060102150405")
+	uniqCode = uniqCode[len(uniqCode)-length:]
+	return uniqCode
 }

@@ -5,17 +5,19 @@ import (
 	"crowdfunding/campaign"
 	"crowdfunding/handler"
 	"crowdfunding/helper"
-	"crowdfunding/users"
-	"fmt"
+	"crowdfunding/user"
 	"log"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func init() {
@@ -28,40 +30,52 @@ func init() {
 
 func main() {
 	dsn := "root:@tcp(127.0.0.1:3306)/crowdfunding?charset=utf8mb4&parseTime=True&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+
+	newLogger := logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags), // New logger
+		logger.Config{
+			SlowThreshold: time.Second, // Durasi query yang dianggap lambat
+			LogLevel:      logger.Info, // Tingkat log yang diinginkan
+			Colorful:      true,        // Warna log (saat dijalankan dalam terminal yang mendukung ANSI color)
+		},
+	)
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: newLogger,
+	})
 
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(err)
 	}
 
 	// Repository Init
-	userRepository := users.NewRepository(db)
+	userRepository := user.NewRepository(db)
 	campaignRepository := campaign.NewRepository(db)
 
-	userService := users.NewService(userRepository)
+	// Service Init
+	userService := user.NewService(userRepository)
 	authService := auth.NewService()
-
-	campaigns, err := campaignRepository.FindByUserID(1)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	for _, campaign := range campaigns {
-		fmt.Println(campaign.CampaignImages[0].FileName)
-	}
+	campaignService := campaign.NewService(campaignRepository)
 
 	userHandler := handler.NewUserHandler(userService, authService)
+	campaignHandler := handler.NewCampaignHandler(campaignService)
 
 	router := gin.Default()
+	router.Static("/assets", "./uploads")
 	api := router.Group("/api/v1")
 
 	api.POST("/users", userHandler.RegisterUser)
 	api.POST("/sessions", userHandler.Login)
-	api.POST("/email_checkers", authMiddleware(authService, userService), userHandler.CheckEmailAvailability)
+	api.POST("/email_checkers", userHandler.CheckEmailAvailability)
 	api.POST("/avatars", authMiddleware(authService, userService), userHandler.UploadAvatar)
+
+	api.POST("/campaigns", authMiddleware(authService, userService), campaignHandler.CreateCampaign)
+	api.GET("/campaigns", campaignHandler.GetCampaigns)
+	api.GET("/campaigns/:id", campaignHandler.GetCampaign)
 	router.Run()
 }
 
-func authMiddleware(authService auth.Service, userService users.Service) gin.HandlerFunc {
+func authMiddleware(authService auth.Service, userService user.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		autHeader := c.GetHeader("Authorization")
 		if !strings.Contains(autHeader, "Bearer") {

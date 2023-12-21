@@ -3,8 +3,10 @@ package campaign
 import "gorm.io/gorm"
 
 type Repository interface {
+	Save(campaign Campaign) (Campaign, error)
 	FindAll() ([]Campaign, error)
-	FindByUserID(userID int) ([]Campaign, error)
+	FindByUserID(userID uint64) ([]Campaign, error)
+	FindByID(ID uint64) (Campaign, error)
 }
 
 type repository struct {
@@ -12,7 +14,6 @@ type repository struct {
 }
 
 func NewRepository(db *gorm.DB) *repository {
-	db = db.Where("deleted_at IS NULL")
 	return &repository{db}
 }
 
@@ -25,11 +26,28 @@ func (r *repository) FindAll() ([]Campaign, error) {
 	return campaigns, nil
 }
 
-func (r *repository) FindByUserID(userID int) ([]Campaign, error) {
+func (r *repository) FindByUserID(userID uint64) ([]Campaign, error) {
 	var campaigns []Campaign
 	err := r.db.Where("user_id = ?", userID).Preload("CampaignImages", "campaign_images.is_primary = 1").Find(&campaigns).Error
 	if err != nil {
 		return campaigns, err
 	}
 	return campaigns, nil
+}
+
+func (r *repository) FindByID(ID uint64) (Campaign, error) {
+	var campaign Campaign
+	err := r.db.Preload("User").Preload("CampaignImages").Where("id = ?", ID).Find(&campaign).Error
+	if err != nil {
+		return campaign, err
+	}
+	return campaign, nil
+}
+
+func (r *repository) Save(campaign Campaign) (Campaign, error) {
+	err := r.db.Create(&campaign).Error
+	if err != nil {
+		return campaign, err
+	}
+	return campaign, nil
 }
