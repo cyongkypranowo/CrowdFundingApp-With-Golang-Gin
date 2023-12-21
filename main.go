@@ -5,7 +5,7 @@ import (
 	"crowdfunding/campaign"
 	"crowdfunding/handler"
 	"crowdfunding/helper"
-	"crowdfunding/users"
+	"crowdfunding/user"
 	"log"
 	"net/http"
 	"os"
@@ -49,11 +49,11 @@ func main() {
 	}
 
 	// Repository Init
-	userRepository := users.NewRepository(db)
+	userRepository := user.NewRepository(db)
 	campaignRepository := campaign.NewRepository(db)
 
 	// Service Init
-	userService := users.NewService(userRepository)
+	userService := user.NewService(userRepository)
 	authService := auth.NewService()
 	campaignService := campaign.NewService(campaignRepository)
 
@@ -61,18 +61,21 @@ func main() {
 	campaignHandler := handler.NewCampaignHandler(campaignService)
 
 	router := gin.Default()
+	router.Static("/assets", "./uploads")
 	api := router.Group("/api/v1")
 
 	api.POST("/users", userHandler.RegisterUser)
 	api.POST("/sessions", userHandler.Login)
-	api.POST("/email_checkers", authMiddleware(authService, userService), userHandler.CheckEmailAvailability)
+	api.POST("/email_checkers", userHandler.CheckEmailAvailability)
 	api.POST("/avatars", authMiddleware(authService, userService), userHandler.UploadAvatar)
 
+	api.POST("/campaigns", authMiddleware(authService, userService), campaignHandler.CreateCampaign)
 	api.GET("/campaigns", campaignHandler.GetCampaigns)
+	api.GET("/campaigns/:id", campaignHandler.GetCampaign)
 	router.Run()
 }
 
-func authMiddleware(authService auth.Service, userService users.Service) gin.HandlerFunc {
+func authMiddleware(authService auth.Service, userService user.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		autHeader := c.GetHeader("Authorization")
 		if !strings.Contains(autHeader, "Bearer") {

@@ -3,7 +3,7 @@ package handler
 import (
 	"crowdfunding/auth"
 	"crowdfunding/helper"
-	"crowdfunding/users"
+	"crowdfunding/user"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -12,16 +12,16 @@ import (
 )
 
 type userHandler struct {
-	userService users.Service
+	userService user.Service
 	authService auth.Service
 }
 
-func NewUserHandler(userService users.Service, authService auth.Service) *userHandler {
+func NewUserHandler(userService user.Service, authService auth.Service) *userHandler {
 	return &userHandler{userService, authService}
 }
 
 func (h *userHandler) RegisterUser(c *gin.Context) {
-	var input users.RegisterUserInput
+	var input user.RegisterUserInput
 	err := c.ShouldBindJSON(&input)
 
 	if err != nil {
@@ -36,7 +36,7 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 	}
 
 	// Check if the email is already registered
-	isEmailAvailable, err := h.userService.IsEmailAvailable(users.CheckEmailInput{Email: input.Email})
+	isEmailAvailable, err := h.userService.IsEmailAvailable(user.CheckEmailInput{Email: input.Email})
 	if err != nil {
 		errorMessage := gin.H{"error": "Server Error"}
 		response := helper.APIResponse("Email Checking Failed", http.StatusUnprocessableEntity, "error", errorMessage)
@@ -52,7 +52,7 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.RegisterUser(input)
+	newUser, err := h.userService.RegisterUser(input)
 
 	if err != nil {
 		response := helper.APIResponse("Register account failed", http.StatusBadRequest, "error", nil)
@@ -60,14 +60,14 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	token, err := h.authService.GenerateToken(user.ID)
+	token, err := h.authService.GenerateToken(newUser.ID)
 	if err != nil {
 		response := helper.APIResponse("Register account failed", http.StatusBadRequest, "error", nil)
 		c.JSON(http.StatusBadRequest, response)
 		return
 	}
 
-	formatter := users.FormatUser(user, token)
+	formatter := user.FormatUser(newUser, token)
 
 	response := helper.APIResponse("Account has been registered", http.StatusCreated, "success", formatter)
 
@@ -75,7 +75,7 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 }
 
 func (h *userHandler) Login(c *gin.Context) {
-	var input users.LoginInput
+	var input user.LoginInput
 	err := c.ShouldBindJSON(&input)
 
 	if err != nil {
@@ -106,7 +106,7 @@ func (h *userHandler) Login(c *gin.Context) {
 		return
 	}
 
-	formatter := users.FormatUser(loggedInUser, token)
+	formatter := user.FormatUser(loggedInUser, token)
 
 	response := helper.APIResponse("Successfully logged in.", http.StatusOK, "success", formatter)
 
@@ -114,7 +114,7 @@ func (h *userHandler) Login(c *gin.Context) {
 }
 
 func (h *userHandler) CheckEmailAvailability(c *gin.Context) {
-	var input users.CheckEmailInput
+	var input user.CheckEmailInput
 
 	err := c.ShouldBindJSON(&input)
 	if err != nil {
@@ -163,7 +163,7 @@ func (h *userHandler) UploadAvatar(c *gin.Context) {
 	}
 
 	// Create a destination file to save the uploaded avatar
-	uniqueID := helper.GenerateUniqueID()
+	uniqueID := helper.GenerateUniqueID(5)
 	//get file extension
 	fileExtension := filepath.Ext(file.Filename)
 	//handle if fileextension is not jpg/jpeg/png will return error
@@ -189,7 +189,7 @@ func (h *userHandler) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	currentUser := c.MustGet("currentUser").(users.User)
+	currentUser := c.MustGet("currentUser").(user.User)
 	userID := currentUser.ID
 
 	_, err = h.userService.SaveAvatar(uint64(userID), avatarPath)
