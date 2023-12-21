@@ -13,8 +13,6 @@ run on your terminal :
 <br>
 <br>
 <h3>Sample Structure</h3>
-<br>
-<br>
 ├── crowdfunding
 <br>│   ├── user
 <br>│   │   ├── entity.go
