@@ -10,5 +10,19 @@ install cosmtrek/air for hotreload
 run on your terminal :
 <br>
 <code>air</code>
+<br>
+<br>
+<h3>Sample Structure</h3>
+<br>
+<br>
+├── crowdfunding
+<br>│   ├── user
+<br>│   │   ├── entity.go
+<br>│   │   ├── formatter.go
+<br>│   │   ├── service.go
+<br>│   │   └── repository.go
+<br>│   └── handler
+<br>│       └── user.go
+<br>└── main.go
 
 
